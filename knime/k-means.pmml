@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PMML version="4.2" xmlns="http://www.dmg.org/PMML-4_2">
+  <Header copyright="joaoa">
+    <Application name="KNIME" version="5.4.0"/>
+  </Header>
+  <DataDictionary numberOfFields="6">
+    <DataField name="Produto" optype="categorical" dataType="string"/>
+    <DataField name="Proteina" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0.0" rightMargin="1.0"/>
+    </DataField>
+    <DataField name="Carboidratos" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0.0" rightMargin="1.0"/>
+    </DataField>
+    <DataField name="Gramas" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0.0" rightMargin="1.0"/>
+    </DataField>
+    <DataField name="Fibras" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0.0" rightMargin="1.0"/>
+    </DataField>
+    <DataField name="Calorias" optype="continuous" dataType="double">
+      <Interval closure="closedClosed" leftMargin="0.0" rightMargin="1.0"/>
+    </DataField>
+  </DataDictionary>
+  <ClusteringModel modelName="k-means" functionName="clustering" modelClass="centerBased" numberOfClusters="3">
+    <MiningSchema>
+      <MiningField name="Proteina" invalidValueTreatment="asIs"/>
+      <MiningField name="Carboidratos" invalidValueTreatment="asIs"/>
+      <MiningField name="Gramas" invalidValueTreatment="asIs"/>
+      <MiningField name="Fibras" invalidValueTreatment="asIs"/>
+      <MiningField name="Calorias" invalidValueTreatment="asIs"/>
+    </MiningSchema>
+    <ComparisonMeasure kind="distance">
+      <squaredEuclidean/>
+    </ComparisonMeasure>
+    <ClusteringField field="Proteina" compareFunction="absDiff"/>
+    <ClusteringField field="Carboidratos" compareFunction="absDiff"/>
+    <ClusteringField field="Gramas" compareFunction="absDiff"/>
+    <ClusteringField field="Fibras" compareFunction="absDiff"/>
+    <ClusteringField field="Calorias" compareFunction="absDiff"/>
+    <Cluster name="cluster_0" size="207">
+      <Array n="5" type="real">0.025237381309345414 0.055639482518627686 0.10863475321062023 0.0030611573645801223 0.09143862494156146 </Array>
+    </Cluster>
+    <Cluster name="cluster_1" size="108">
+      <Array n="5" type="real">0.044540229885057514 0.12868801004394226 0.16796982942165878 0.0038691883372734435 0.30252202807646356 </Array>
+    </Cluster>
+    <Cluster name="cluster_2" size="18">
+      <Array n="5" type="real">0.16738505747126436 0.5969868173258003 0.33955119787127525 0.13118203309692672 0.4551033266129032 </Array>
+    </Cluster>
+  </ClusteringModel>
+</PMML>
