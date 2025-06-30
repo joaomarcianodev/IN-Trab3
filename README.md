@@ -15,4 +15,4 @@ Sistemas de recomendação por meio de aprendizado não-supervisionado utilizand
 
 ## Respectivos Gráficos
 
-![alt text](https://github.com/JoaoAugusto2020/IN-Trab3/blob/main/imgs/k-Means%20(3%20Clusters).png "k-Means")
+![alt text](https://github.com/JoaoAugusto2020/IN-Trab3/blob/main/imgs/k-Means%20(3%20Clusters)png "k-Means")
