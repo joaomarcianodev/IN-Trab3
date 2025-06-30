@@ -7,6 +7,7 @@ Sistemas de recomendação por meio de aprendizado não-supervisionado utilizand
 
 ## Melhores Coeficiente de Silhuetas
 | Algoritmo | CS(i) | Clusters |
+| --- | --- | --- |
 | **k-Means** | 0.371 | 3 |
 | **Fuzzy** | 0.396 | 7 |
 | **k-Medoids** | 0.320 | 9 |
