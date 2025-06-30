@@ -26,3 +26,6 @@ k-Medoids:
 
 Hierárquico:
 ![Imagem - gráfico do Hierárquico](https://github.com/JoaoAugusto2020/IN-Trab3/blob/main/imgs/Hierárquico-Manhattan%20(2%20Clusters).png "Hierárquico")
+
+## Resultado
+Considerando as Silhuetas e os Gráficos do melhor resultado de todos os algoritmos, chega-se à conclusão de que o melhor algoritmo a ser usado no sistema é o k-Means com 3 clusters pois este possui uma silhueta com valor minimamente bom e um gráfico com cluster bem formados.
