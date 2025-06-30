@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recomendação de Alimentos</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <style>
+        body {
+            background-image: 
+                linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+                url('imgs/gif1.gif');
+            background-size: 25%;
+            background-attachment: fixed;
+            background-position: center;
+            background-repeat: repeat;
+        }
+        
+        .card {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: 100%; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container mt-5 mb-5">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h1 class="h4 mb-0">Recomendação de Alimentos Semelhantes</h1>
+            </div>
+
+            <div class="card-body">
+                <form id="nutricionalForm">
+                    <h1 class="mb-3">Insira abaixo os valores da tabela nutricional do seu alimento:</h1>
+
+                    <div class="mb-3">
+                        <label for="gramasAmostra" class="form-label">Nome do Produto (se houver)</label>
+                        <input type="text" step="0.001" class="form-control" id="nomeProduto" placeholder="Nome de Base de Dados" value="Cows' milk">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="gramasAmostra" class="form-label">Gramas da Amostra (g)</label>
+                        <input type="number" step="0.001" class="form-control" id="gramasAmostra" placeholder="Insira entre 1,419 e 984" min="1.419" max="984" required value="976">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="proteinas" class="form-label">Proteínas (g)</label>
+                        <input type="number" step="0.01" class="form-control" id="proteinas" placeholder="Insira entre 0 e 232" min="0" max="232" required value="32">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fibras" class="form-label">Fibras (g)</label>
+                        <input type="number" step="0.01" class="form-control" id="fibras" placeholder="Insira entre 0 e 235" min="0" max="235" required value="0">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="carboidratos" class="form-label">Carboidratos (g)</label>
+                        <input type="number" step="0.01" class="form-control" id="carboidratos" placeholder="Insira entre 0 e 236" min="0" max="236" required value="48">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="calorias" class="form-label">Calorias (kcal)</label>
+                        <input type="number" step="0.01" class="form-control" id="calorias" placeholder="Insira entre 0 e 992" min="0" max="992" required value="660">
+                    </div>
+
+                    <hr>
+
+                    <button type="submit" class="btn btn-success">Buscar</button>
+                </form>
+
+                <div id="dadosNormalizados" class="mt-4"></div>
+
+                <div id="clusterVencedor" class="mt-4"></div>
+
+                <div id="produtoSemelhante" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script>
+    $(document).ready(function() {
+        const ranges = {
+            gramas:       { min: 1.419, max: 984 },
+            proteinas:    { min: 0,     max: 232 },
+            fibras:       { min: 0,     max: 235 },
+            carboidratos: { min: 0,     max: 236 },
+            calorias:     { min: 0,     max: 992 }
+        };
+
+        // val_normalizado = (valor_inserido - val_min) / (val_max - val_min)
+        function normalize(val, min, max) {
+            if (max === min) return 0;
+            else return (val - min) / (max - min);
+        }
+
+        // valor_original = valor_normalizado * (max-min) + min
+        function denormalize(val, min, max) {
+            return val * (max - min) + min;
+        }
+
+        // distancia = pow(val_normalizado_col1 - val_pmml_col1, 2) + pow(val_normalizado_col2 - val_pmml_col2 , 2) + ...
+        function getDistanceCluster0(produto) {
+            let difPro = produto.valPro - 0.025237381309345414;
+            let difCar = produto.valCar - 0.055639482518627686;
+            let difGra = produto.valGra - 0.10863475321062023;
+            let difFib = produto.valFib - 0.0030611573645801223;
+            let difCal = produto.valCal - 0.09143862494156146;
+
+            return Math.pow(difPro, 2) + Math.pow(difCar, 2) + Math.pow(difGra, 2) + Math.pow(difFib, 2) + Math.pow(difCal, 2);
+        }
+
+        // distancia = pow(val_normalizado_col1 - val_pmml_col1, 2) + pow(val_normalizado_col2 - val_pmml_col2 , 2) + ...
+        function getDistanceCluster1(produto) {
+            let difPro = produto.valPro - 0.044540229885057514;
+            let difCar = produto.valCar - 0.12868801004394226;
+            let difGra = produto.valGra - 0.16796982942165878;
+            let difFib = produto.valFib - 0.0038691883372734435;
+            let difCal = produto.valCal - 0.30252202807646356;
+
+            return Math.pow(difPro, 2) + Math.pow(difCar, 2) + Math.pow(difGra, 2) + Math.pow(difFib, 2) + Math.pow(difCal, 2);
+        }
+      
+        // distancia = pow(val_normalizado_col1 - val_pmml_col1, 2) + pow(val_normalizado_col2 - val_pmml_col2 , 2) + ...
+        function getDistanceCluster2(produto) {
+            let difPro = produto.valPro - 0.16738505747126436;
+            let difCar = produto.valCar - 0.5969868173258003;
+            let difGra = produto.valGra - 0.33955119787127525;
+            let difFib = produto.valFib - 0.13118203309692672;
+            let difCal = produto.valCal - 0.4551033266129032;
+
+            return Math.pow(difPro, 2) + Math.pow(difCar, 2) + Math.pow(difGra, 2) + Math.pow(difFib, 2) + Math.pow(difCal, 2);
+        }
+        
+        function getCluster(produto) {
+            const distances = {
+                cluster_0: getDistanceCluster0(produto),
+                cluster_1: getDistanceCluster1(produto),
+                cluster_2: getDistanceCluster2(produto)
+            }
+
+            let minDistance = Infinity
+            let clusterVencedor = ''
+            for(const cluster in distances) {
+                if (distances[cluster] < minDistance) {
+                    minDistance = distances[cluster]
+                    clusterVencedor = cluster
+                }
+            }
+            
+            return clusterVencedor
+        }
+
+        async function recomendarProduto(produto) {
+            const arquivoCSV = "PMML/k-means_normalizado.csv";
+            try {
+                const resposta = await fetch(arquivoCSV);
+                if (!resposta.ok) throw new Error(`Erro de rede: ${resposta.statusText}`);
+                const textoCSV = await resposta.text();
+
+                // Envolve o Papa.parse em uma Promise para poder usar await
+                return new Promise((resolve, reject) => {
+                    Papa.parse(textoCSV, {
+                        header: true,
+                        skipEmptyLines: true,
+                        dynamicTyping: true,
+                        complete: function(resultados) {
+                            // 1. Filtrar pelo cluster
+                            const clusterAlvo = getCluster(produto);
+                            const dadosFiltrados = resultados.data.filter(linha => linha['Cluster'] === clusterAlvo);
+
+                            // 2. Renomear atributos do produto para se adaptar às colunas do CSV
+                            const colunas = ['Proteina', 'Carboidratos', 'Gramas', 'Fibras', 'Calorias'];
+                            const produtoAlvo = {
+                                Nome: produto.nome,
+                                Proteina: produto.valPro,
+                                Carboidratos: produto.valCar,
+                                Gramas: produto.valGra,
+                                Fibras: produto.valFib,
+                                Calorias: produto.valCal
+                            };
+
+                            // 3. Encontrar o produto mais semelhante DENTRO DA LISTA FILTRADA
+                            let menorDistancia = Infinity;
+                            let produtoMaisProximo = null;
+
+                            // CORREÇÃO: Iterar sobre 'dadosFiltrados' e não 'resultados.data'
+                            for (const produtoAtual of dadosFiltrados) {
+                                if (produtoAlvo.Nome && produtoAtual.Produto === produtoAlvo.Nome) {
+                                    continue;
+                                }
+                                let somaDosQuadrados = 0;
+                                for (const coluna of colunas) {
+                                    const diferenca = produtoAlvo[coluna] - produtoAtual[coluna];
+                                    somaDosQuadrados += diferenca * diferenca;
+                                }
+                                let distancia = Math.sqrt(somaDosQuadrados);
+
+                                if (distancia < menorDistancia) {
+                                    menorDistancia = distancia;
+                                    produtoMaisProximo = produtoAtual;
+                                }
+                            }
+
+                            // Adiciona a distância ao objeto do produto para fácil exibição
+                            if (produtoMaisProximo) {
+                                produtoMaisProximo.distancia = menorDistancia;
+                            }
+
+                            // Resolve a promise com o resultado final
+                            resolve(produtoMaisProximo);
+                        },
+                        error: function(err) {
+                            // Rejeita a promise se houver erro no parse
+                            reject(err);
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Falha na operação:', error);
+                return null; // Retorna nulo se o fetch falhar
+            }
+        }
+        
+        $('#nutricionalForm').on('submit', async function(event) {
+            event.preventDefault();
+            
+            $('#dadosNormalizados').empty().removeClass('alert alert-danger');
+            var nomeProduto = $('#nomeProduto').val();
+            var gramas = parseFloat($('#gramasAmostra').val());
+            var proteinas = parseFloat($('#proteinas').val());
+            var fibras = parseFloat($('#fibras').val());
+            var carboidratos = parseFloat($('#carboidratos').val());
+            var calorias = parseFloat($('#calorias').val());
+            
+            if (isNaN(gramas) || isNaN(proteinas) || isNaN(fibras) || isNaN(carboidratos) || isNaN(calorias)) {
+                $('#dadosNormalizados').addClass('alert alert-danger').html('<strong>Erro:</strong> Por favor, preencha todos os campos com valores numéricos.');
+                return;
+            }
+
+            //Aqui os dados normalizados NÃO estão sendo arredondados igual no Knime, espero não ser um problema 
+            var normGramas = normalize(gramas, ranges.gramas.min, ranges.gramas.max);
+            var normProteinas = normalize(proteinas, ranges.proteinas.min, ranges.proteinas.max);
+            var normFibras = normalize(fibras, ranges.fibras.min, ranges.fibras.max);
+            var normCarboidratos = normalize(carboidratos, ranges.carboidratos.min, ranges.carboidratos.max);
+            var normCalorias = normalize(calorias, ranges.calorias.min, ranges.calorias.max);
+
+            var produto = {
+              nome: nomeProduto,
+              valPro: normProteinas,
+              valCar: normCarboidratos,
+              valGra: normGramas,
+              valFib: normFibras,
+              valCal: normCalorias
+            }
+
+            //Card dados normalizados
+            const htmlResultadoNormalize = `
+                <div class="alert alert-success">
+                    <h4 class="alert-heading">Dados Normalizados</h4>
+                    <ul class="list-unstyled mb-0">
+                        <li><strong>Gramas:</strong> ${normGramas.toFixed(4)}</li>
+                        <li><strong>Proteínas:</strong> ${normProteinas.toFixed(4)}</li>
+                        <li><strong>Fibras:</strong> ${normFibras.toFixed(4)}</li>
+                        <li><strong>Carboidratos:</strong> ${normCarboidratos.toFixed(4)}</li>
+                        <li><strong>Calorias:</strong> ${normCalorias.toFixed(4)}</li>
+                    </ul>
+                </div>
+            `;
+            $('#dadosNormalizados').html(htmlResultadoNormalize);
+
+            //Card cluster vencedor
+            const htmlResultadoCluster = `
+                <div class="alert alert-success">
+                    <h4 class="alert-heading">Cluster Vencedor</h4>
+                    <ul class="list-unstyled mb-0">
+                        <li><strong>Nome do cluster:</strong> ${getCluster(produto)}</li>
+                    </ul>
+                </div>
+            `;
+            $('#clusterVencedor').html(htmlResultadoCluster);
+            
+            const produtoSemelhante = await recomendarProduto(produto);
+            
+            if (produtoSemelhante) {
+                const originalGramas = denormalize(produtoSemelhante.Gramas, ranges.gramas.min, ranges.gramas.max);
+                const originalProteina = denormalize(produtoSemelhante.Proteina, ranges.proteinas.min, ranges.proteinas.max);
+                const originalFibras = denormalize(produtoSemelhante.Fibras, ranges.fibras.min, ranges.fibras.max);
+                const originalCarboidratos = denormalize(produtoSemelhante.Carboidratos, ranges.carboidratos.min, ranges.carboidratos.max);
+                const originalCalorias = denormalize(produtoSemelhante.Calorias, ranges.calorias.min, ranges.calorias.max);
+
+                const htmlResultadoProduto = `
+                    <div class="alert alert-info">
+                        <h4 class="alert-heading">Produto Semelhante Encontrado</h4>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Produto:</strong> ${produtoSemelhante.Produto}</li>
+                            <li><strong>Gramas:</strong> ${originalGramas}g</li>
+                            <li><strong>Proteínas:</strong> ${originalProteina}g</li>
+                            <li><strong>Fibras:</strong> ${originalFibras}g</li>
+                            <li><strong>Carboidratos:</strong> ${originalCarboidratos}g</li>
+                            <li><strong>Calorias:</strong> ${originalCalorias}kcal</li>
+                            <hr>
+                            <li><strong>Distância:</strong> ${produtoSemelhante.distancia.toFixed(4)}</li>
+                        </ul>
+                    </div>
+                `;
+                $('#produtoSemelhante').html(htmlResultadoProduto);
+            } else {
+                $('#produtoSemelhante').html('<div class="alert alert-warning">Não foi possível encontrar um produto semelhante.</div>');
+            }
+        });
+    });
+    </script>
+
+</body>
+</html>
+
