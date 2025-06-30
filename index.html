@@ -305,11 +305,11 @@
                         <h4 class="alert-heading">Produto Semelhante Encontrado</h4>
                         <ul class="list-unstyled mb-0">
                             <li><strong>Produto:</strong> ${produtoSemelhante.Produto}</li>
-                            <li><strong>Gramas:</strong> ${originalGramas}g</li>
-                            <li><strong>Proteínas:</strong> ${originalProteina}g</li>
-                            <li><strong>Fibras:</strong> ${originalFibras}g</li>
-                            <li><strong>Carboidratos:</strong> ${originalCarboidratos}g</li>
-                            <li><strong>Calorias:</strong> ${originalCalorias}kcal</li>
+                            <li><strong>Gramas:</strong> ${originalGramas.toFixed(1)}g</li>
+                            <li><strong>Proteínas:</strong> ${originalProteina.toFixed(1)}g</li>
+                            <li><strong>Fibras:</strong> ${originalFibras.toFixed(1)}g</li>
+                            <li><strong>Carboidratos:</strong> ${originalCarboidratos.toFixed(1)}g</li>
+                            <li><strong>Calorias:</strong> ${originalCalorias.toFixed(1)}kcal</li>
                             <hr>
                             <li><strong>Distância:</strong> ${produtoSemelhante.distancia.toFixed(4)}</li>
                         </ul>
