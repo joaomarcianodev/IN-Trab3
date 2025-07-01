@@ -136,7 +136,7 @@
 
     <script>
         $(document).ready(function() {
-            const ranges = {
+            const limites = {
                 gramas:       { min: 1.419, max: 984 },
                 proteinas:    { min: 0,     max: 232 },
                 fibras:       { min: 0,     max: 235 },
@@ -153,7 +153,7 @@
                 return val * (max - min) + min;
             }
 
-            function getDistanceCluster0(produto) {
+            function getDistanciaCluster0(produto) {
                 let difPro = produto.valPro - 0.025237381309345414;
                 let difCar = produto.valCar - 0.055639482518627686;
                 let difGra = produto.valGra - 0.10863475321062023;
@@ -162,7 +162,7 @@
                 return Math.pow(difPro, 2) + Math.pow(difCar, 2) + Math.pow(difGra, 2) + Math.pow(difFib, 2) + Math.pow(difCal, 2);
             }
 
-            function getDistanceCluster1(produto) {
+            function getDistanciaCluster1(produto) {
                 let difPro = produto.valPro - 0.044540229885057514;
                 let difCar = produto.valCar - 0.12868801004394226;
                 let difGra = produto.valGra - 0.16796982942165878;
@@ -171,7 +171,7 @@
                 return Math.pow(difPro, 2) + Math.pow(difCar, 2) + Math.pow(difGra, 2) + Math.pow(difFib, 2) + Math.pow(difCal, 2);
             }
             
-            function getDistanceCluster2(produto) {
+            function getDistanciaCluster2(produto) {
                 let difPro = produto.valPro - 0.16738505747126436;
                 let difCar = produto.valCar - 0.5969868173258003;
                 let difGra = produto.valGra - 0.33955119787127525;
@@ -181,37 +181,56 @@
             }
             
             function getCluster(produto) {
-                const distances = {
-                    cluster_0: getDistanceCluster0(produto),
-                    cluster_1: getDistanceCluster1(produto),
-                    cluster_2: getDistanceCluster2(produto)
+                let distancias = {
+                    cluster_0: getDistanciaCluster0(produto),
+                    cluster_1: getDistanciaCluster1(produto),
+                    cluster_2: getDistanciaCluster2(produto)
                 }
-                let minDistance = Infinity;
+
+                let menorDistancia = Infinity;
                 let clusterVencedor = '';
-                for(const cluster in distances) {
-                    if (distances[cluster] < minDistance) {
-                        minDistance = distances[cluster];
+                for(const cluster in distancias) {
+                    if (distancias[cluster] < menorDistancia) {
+                        menorDistancia = distancias[cluster];
                         clusterVencedor = cluster;
                     }
                 }
                 return clusterVencedor;
             }
 
+            function getDescricaoCluster(cluster){
+                txt = ""
+                if(cluster == "cluster_0"){
+                    txt = "Produto com valor baixo em calorias (kcal), valor baixo-médio em carboidratos e valor baixo no peso/amostra."
+                }else if(cluster == "cluster_1"){
+                    txt = "Produto com valor alto-médio em calorias (kcal) e valor baixo em fibras."
+                }else if(cluster == "cluster_2"){
+                    txt = "Produto com valor alto em fibras, valor alto em carboidratos e valor alto-médio em proteínas."
+                }
+                return txt
+            }
+
             async function recomendarProduto(produto) {
                 const arquivoCSV = "knime/k-means_normalizado.csv";
+
                 try {
-                    const resposta = await fetch(arquivoCSV);
+                    resposta = await fetch(arquivoCSV);
                     if (!resposta.ok) throw new Error(`Erro de rede: ${resposta.statusText}`);
-                    const textoCSV = await resposta.text();
+                    textoCSV = await resposta.text();
+
                     return new Promise((resolve, reject) => {
                         Papa.parse(textoCSV, {
                             header: true,
                             skipEmptyLines: true,
                             dynamicTyping: true,
                             complete: function(resultados) {
+
+                                //filtro de cluster
                                 const clusterAlvo = getCluster(produto);
                                 const dadosFiltrados = resultados.data.filter(linha => linha['Cluster'] === clusterAlvo);
-                                const colunas = ['Proteina', 'Carboidratos', 'Gramas', 'Fibras', 'Calorias'];
+                                
+                                //dados para busca semelhante
+                                const colunasCSV = ['Proteina', 'Carboidratos', 'Gramas', 'Fibras', 'Calorias'];
                                 const produtoAlvo = {
                                     Nome: produto.nome,
                                     Proteina: produto.valPro,
@@ -220,31 +239,36 @@
                                     Fibras: produto.valFib,
                                     Calorias: produto.valCal
                                 };
+                                
+                                //menor distância entre os produtos
                                 let menorDistancia = Infinity;
                                 let produtoMaisProximo = null;
                                 for (const produtoAtual of dadosFiltrados) {
-                                    if (produtoAlvo.Nome && produtoAtual.Produto === produtoAlvo.Nome) continue;
+                                    if (produtoAtual.Produto === produtoAlvo.Nome) continue; //pular o próprio produto
+
+                                    //soma das diferenças
                                     let somaDosQuadrados = 0;
-                                    for (const coluna of colunas) {
-                                        const diferenca = produtoAlvo[coluna] - produtoAtual[coluna];
-                                        somaDosQuadrados += diferenca * diferenca;
+                                    for (const coluna of colunasCSV) {
+                                        diferenca = produtoAlvo[coluna] - produtoAtual[coluna];
+                                        somaDosQuadrados += Math.pow(diferenca, 2);
                                     }
+
+                                    //menor distância
                                     let distancia = Math.sqrt(somaDosQuadrados);
                                     if (distancia < menorDistancia) {
                                         menorDistancia = distancia;
                                         produtoMaisProximo = produtoAtual;
+                                        produtoMaisProximo.distancia = menorDistancia;
                                     }
                                 }
-                                if (produtoMaisProximo) {
-                                    produtoMaisProximo.distancia = menorDistancia;
-                                }
+                                
                                 resolve(produtoMaisProximo);
                             },
                             error: (err) => reject(err)
                         });
                     });
                 } catch (error) {
-                    console.error('Falha na operação:', error);
+                    alert('Falha na operação:', error);
                     return null;
                 }
             }
@@ -274,11 +298,11 @@
                     return;
                 }
 
-                var normGramas = normalize(gramas, ranges.gramas.min, ranges.gramas.max);
-                var normProteinas = normalize(proteinas, ranges.proteinas.min, ranges.proteinas.max);
-                var normFibras = normalize(fibras, ranges.fibras.min, ranges.fibras.max);
-                var normCarboidratos = normalize(carboidratos, ranges.carboidratos.min, ranges.carboidratos.max);
-                var normCalorias = normalize(calorias, ranges.calorias.min, ranges.calorias.max);
+                var normGramas = normalize(gramas, limites.gramas.min, limites.gramas.max);
+                var normProteinas = normalize(proteinas, limites.proteinas.min, limites.proteinas.max);
+                var normFibras = normalize(fibras, limites.fibras.min, limites.fibras.max);
+                var normCarboidratos = normalize(carboidratos, limites.carboidratos.min, limites.carboidratos.max);
+                var normCalorias = normalize(calorias, limites.calorias.min, limites.calorias.max);
 
                 var produto = {
                     nome: nomeProduto,
@@ -305,18 +329,20 @@
                 const htmlResultadoCluster = `
                     <div class="alert alert-secondary">
                         <h4 class="alert-heading h6">Cluster Vencedor</h4>
-                        <p class="mb-0 small"><strong>Seu alimento pertence ao:</strong> ${getCluster(produto)}</p>
+                        <ul class="list-unstyled mb-0 small">
+                            <li><strong>Seu alimento pertence ao:</strong> ${getCluster(produto)}</li>
+                            <li><strong>Descrição do cluster:</strong> ${getDescricaoCluster(getCluster(produto))}</li>
+                        </ul>
                     </div>`;
                 $('#clusterVencedor').html(htmlResultadoCluster);
                 
                 const produtoSemelhante = await recomendarProduto(produto);
-                
                 if (produtoSemelhante) {
-                    const originalGramas = denormalize(produtoSemelhante.Gramas, ranges.gramas.min, ranges.gramas.max);
-                    const originalProteina = denormalize(produtoSemelhante.Proteina, ranges.proteinas.min, ranges.proteinas.max);
-                    const originalFibras = denormalize(produtoSemelhante.Fibras, ranges.fibras.min, ranges.fibras.max);
-                    const originalCarboidratos = denormalize(produtoSemelhante.Carboidratos, ranges.carboidratos.min, ranges.carboidratos.max);
-                    const originalCalorias = denormalize(produtoSemelhante.Calorias, ranges.calorias.min, ranges.calorias.max);
+                    var originalGramas = denormalize(produtoSemelhante.Gramas, limites.gramas.min, limites.gramas.max);
+                    var originalProteina = denormalize(produtoSemelhante.Proteina, limites.proteinas.min, limites.proteinas.max);
+                    var originalFibras = denormalize(produtoSemelhante.Fibras, limites.fibras.min, limites.fibras.max);
+                    var originalCarboidratos = denormalize(produtoSemelhante.Carboidratos, limites.carboidratos.min, limites.carboidratos.max);
+                    var originalCalorias = denormalize(produtoSemelhante.Calorias, limites.calorias.min, limites.calorias.max);
 
                     $('#resultadoNomeProduto').val(produtoSemelhante.Produto);
                     $('#resultadoGramas').val(originalGramas.toFixed(1));
