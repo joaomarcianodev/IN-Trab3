@@ -1,5 +1,6 @@
 # Inteligência de Negócios - Trabalho 3
 Sistemas de recomendação por meio de aprendizado não-supervisionado utilizando algoritmos de Clusterização
+- Apresentação: [YouTube](https://youtu.be/qwCODGOIu7A)
 
 ## Base de Dados
 - Base de dados escolhida: [Kaggle](https://www.kaggle.com/datasets/niharika41298/nutrition-details-for-most-common-foods/code)
